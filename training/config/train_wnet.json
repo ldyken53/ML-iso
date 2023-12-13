@@ -1,0 +1,49 @@
+{
+    "model": "wnet",
+    "num_devices": 3,
+    "batch_size": 96,
+    "epochs": 5000,
+    "loss": "l1_msssim",
+  
+    "train_config": {
+      "optimizer": "radam",
+      "schedule": "clamped_exp",
+      "start_epoch": 500,
+      "end_epoch": 5000,
+      "steps": 5000,
+      "lr": 0.01,
+      "final_lr": 0.00000001
+    },
+  
+    "model_config": {
+      "use_bn": false,
+      "activation": "leaky_relu",
+      "leaky_slope": 0.1,
+      "init": "default",
+      "fe_model": "UNet",
+      "quantize": false,
+      "num_bits": 8,
+      "denselayer": false,
+      "denselayer_size": 32,
+      "feature_size": 8,
+      "num_kernels": 3,
+      "num_taps": 13,
+      "encoder_stages": [
+        [ 64, 2 ],
+        [ 64, 2 ],
+        [ 64, 2],
+        [ 80, 2],
+        [ 96, 2]
+      ],
+  
+      "decoder_stages": [
+        [ 32, 2 ],
+        [ 64, 2 ],
+        [ 64, 2 ],
+        [ 80, 2 ]
+      ]
+    }
+  }
+  
+  
+  

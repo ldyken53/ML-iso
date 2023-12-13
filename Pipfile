@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+matplotlib = "*"
+scipy = "*"
+pypng = "*"
+cupy = "*"
+scikit-learn = "*"
+tensorboard = "*"
+numpy = "==1.19.4"
+opencv-python = "*"
+torch = "*"
+torchvision = "*"
+torchsummary = "*"
+tensorboardx = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
