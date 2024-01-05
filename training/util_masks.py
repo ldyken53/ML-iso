@@ -98,15 +98,15 @@ def GetSampleMaskSequence(shape, r, num=12, threshold=.995, mask_size=64, noise_
 
     # Define random start and end points
     # Add foveated area radius r as offset to avoid invalid locations
-    start = np.array([np.random.randint(0, shape[0]), np.random.randint(0, shape[1])], dtype=np.int)
-    end = np.array([np.random.randint(0, shape[0]), np.random.randint(0, shape[1])], dtype=np.int)
+    start = np.array([np.random.randint(0, shape[0]), np.random.randint(0, shape[1])], dtype=int)
+    end = np.array([np.random.randint(0, shape[0]), np.random.randint(0, shape[1])], dtype=int)
 
     # Calculate their distance
     dist = np.abs(start - end)
 
     # Generate sequence of 30 frames
     frames = np.empty((num,shape[0],shape[1]))
-    for i, point in enumerate(np.linspace(start, end, num=num, dtype=np.int)):
+    for i, point in enumerate(np.linspace(start, end, num=num, dtype=int)):
         #point = (shape[0],shape[1])
         # if i == 14:
         #     point = (800, 175)

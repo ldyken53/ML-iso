@@ -72,6 +72,7 @@ def parse_args(cmd=None, description=None):
     parser.add_argument('--lr', '--learning_rate', type=float, default=2e-6, help='minimum learning rate')
     parser.add_argument('--max_lr', '--max_learning_rate', type=float, default=2e-4, help='maximum learning rate')
     parser.add_argument('--lr_cycle_epochs', type=int, default=250, help='number of epochs per learning rate cycle (for CLR)')
+    parser.add_argument('--precision', '-p', type=str, choices=['fp32', 'mixed'], help='training precision')
 
   if cmd in {'find_lr'}:
     parser.add_argument('--lr', '--learning_rate', type=float, default=1e-8, help='minimum learning rate')
@@ -168,6 +169,10 @@ def parse_args(cmd=None, description=None):
         cfg.transfer = 'srgb'
 
   if cmd in {'train', 'train_temporal', 'train_deepfovea', 'train_temporal_opticalflow', 'train_temporal_gan', 'find_lr'}:
+      # Set the default training precision
+    if cfg.precision is None:
+      cfg.precision = 'mixed' if cfg.device == 'cuda' else 'fp32'
+
     # Check the batch size
     if cfg.batch_size % cfg.num_devices != 0:
       parser.error('batch_size is not divisible by num_devices')

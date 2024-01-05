@@ -173,3 +173,7 @@ ovrmodule/docker/*.tar.gz
 ovrmodule/docker/*.tgz
 ovrmodule/models/deepfovea_traced.pt
 
+training/infer
+training/data
+training/preproc
+training/results

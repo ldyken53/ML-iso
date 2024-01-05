@@ -22,6 +22,6 @@ class WNet(nn.Module):
     return
 
   def forward(self, input):
-    features = self.feature_model(input)
+    y, features = self.feature_model(input)
     output = self.filter_model(input[:,0:3,...], features)
     return output

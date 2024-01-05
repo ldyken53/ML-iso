@@ -220,6 +220,7 @@ def get_preproc_data_dir(cfg, name):
 class PreprocessedDataset(Dataset):
   def __init__(self, cfg, name):
     super(PreprocessedDataset, self).__init__()
+    cfg.temp_size = 12
 
     self.cfg = cfg
 
@@ -253,7 +254,7 @@ class PreprocessedDataset(Dataset):
     self.images = tza.Reader(tza_filename)
 
     #self.masks = GetSampleMaskSequence((cfg.tile_size, cfg.tile_size), cfg.tile_size//3, cfg.temp_size if cfg.temp_size else 12, threshold=.75, mask_size=cfg.tile_size, noise_type='uniform')
-    self.masks = GetSampleMaskSequence((cfg.tile_size, cfg.tile_size), cfg.tile_size//3, cfg.temp_size if cfg.temp_size else 12, threshold=.95, mask_size=128, noise_type='stbn')
+    # self.masks = GetSampleMaskSequence((cfg.tile_size, cfg.tile_size), cfg.tile_size//3, cfg.temp_size, threshold=.95, mask_size=128, noise_type='stbn')
 
   def update_masks(self):
     size = int(self.cfg.tile_size//8 + (self.cfg.tile_size//3 - self.cfg.tile_size//8) * random.random())
@@ -262,7 +263,7 @@ class PreprocessedDataset(Dataset):
 
 
     #self.masks = GetSampleMaskSequence((self.cfg.tile_size, self.cfg.tile_size), size, self.cfg.temp_size if self.cfg.temp_size else 12, threshold=threshold, mask_size=self.cfg.tile_size, noise_type='uniform')
-    self.masks = GetSampleMaskSequence((self.cfg.tile_size, self.cfg.tile_size), size, self.cfg.temp_size if self.cfg.temp_size else 12, threshold=threshold, mask_size=128, noise_type='stbn')
+    # self.masks = GetSampleMaskSequence((self.cfg.tile_size, self.cfg.tile_size), size, self.cfg.temp_size if self.cfg.temp_size else 12, threshold=threshold, mask_size=128, noise_type='stbn')
 ## -----------------------------------------------------------------------------
 ## Training dataset
 ## -----------------------------------------------------------------------------
@@ -301,10 +302,10 @@ class TrainingDataset(PreprocessedDataset):
     channels = self.channels[:] # copy
 
     # # Randomly permute the color channels
-    # color_order = randperm(3)
-    # shuffle_channels(channels, 'r', color_order)
-    # if 'alb' in self.features:
-    #   shuffle_channels(channels, 'alb.r', color_order)
+    color_order = randperm(3)
+    shuffle_channels(channels, 'r', color_order)
+    if 'alb' in self.features:
+      shuffle_channels(channels, 'alb.r', color_order)
 
     # # Randomly permute the normal channels
     # if 'nrm' in self.features:
@@ -342,9 +343,10 @@ class TrainingDataset(PreprocessedDataset):
 
     # Mask the image
     # TODO Choose a random mask
-    mask = self.masks[0]
-    idx = (mask == 0)
-    input_image[idx] = 0
+    # NEW: commented out masks
+    # mask = self.masks[0]
+    # idx = (mask == 0)
+    # input_image[idx] = 0
 
     target_image = np.pad(target_image, pad_size, mode='constant')
 
@@ -355,7 +357,8 @@ class TrainingDataset(PreprocessedDataset):
     #   target_image[:] = 0
 
     # DEBUG: Save the tile
-    #save_image('tile_%d.png' % i, target_image)
+    # save_image('inputtile_%s.png' % input_name, input_image)
+    # save_image('targettile_%s.png' % target_name, target_image)
  
     # Convert the tiles to tensors
     return image_to_tensor(input_image), image_to_tensor(target_image)
@@ -415,9 +418,10 @@ class ValidationDataset(PreprocessedDataset):
 
     # Mask the image
     # TODO Choose a random mask
-    mask = self.masks[0]
-    idx = (mask == 0)
-    input_image[idx] = 0
+    # NEW: commented out mask
+    # mask = self.masks[0]
+    # idx = (mask == 0)
+    # input_image[idx] = 0
 
 
     target_image = target_image[oy:oy+sy, ox:ox+sx, :3]
@@ -452,6 +456,7 @@ class TrainingTemporalDataset(PreprocessedDataset):
 
   def __getitem__(self, index):
     # Resample masks every 100 images
+    # NEW: comment out masking
     if index%100 == 0:
       self.update_masks()
 
@@ -540,6 +545,7 @@ class TrainingTemporalDataset(PreprocessedDataset):
     # Zero pad the tiles (always makes a copy)
     pad_size = ((0,0), (0, self.tile_size - sy), (0, self.tile_size - sx), (0, 0))
     input_image  = np.pad(input_image,  pad_size, mode='constant')
+    # NEW: comment out masking
     for t in range(self.temp_size):
       idx = (self.masks[t] == 0)
       input_image[t, idx] = 0

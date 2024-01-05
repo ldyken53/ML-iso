@@ -4,6 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.cuda.amp as amp
 
 from util import *
 from image import *
@@ -44,11 +45,11 @@ def get_loss_function(cfg, loss_type='loss'):
 # L1 loss (seems to be faster than the built-in L1Loss)
 class L1Loss(nn.Module):
   def forward(self, input, target):
-    if input.shape[1] > 3:
-      input = input[:,:3,...]
+    # if input.shape[1] > 3:
+    #   input = input[:,:3,...]
 
-    if target.shape[1] > 3:
-      target = target[:,:3,...]
+    # if target.shape[1] > 3:
+    #   target = target[:,:3,...]
 
     return torch.abs(input - target).mean()
 
@@ -74,7 +75,8 @@ class SSIMLoss(nn.Module):
     self.ssim = SSIM(data_range=1.)
 
   def forward(self, input, target):
-    return 1. - self.ssim(input, target)
+    with amp.autocast(enabled=False):
+      return 1. - self.ssim(input.float(), target.float())
 
 # MS-SSIM loss
 class MSSSIMLoss(nn.Module):
@@ -83,7 +85,8 @@ class MSSSIMLoss(nn.Module):
     self.msssim = MS_SSIM(data_range=1.)
 
   def forward(self, input, target):
-    return 1. - self.msssim(input, target)
+    with amp.autocast(enabled=False):
+      return 1. - self.msssim(input.float(), target.float())
 
 class VGGLoss(nn.Module):
   def __init__(self):
@@ -91,7 +94,8 @@ class VGGLoss(nn.Module):
     self.vgg = VGG19()
 
   def forward(self, input, target, per_layer=False):
-    return self.vgg(input, target, per_layer=per_layer)
+    with amp.autocast(enabled=False):
+      return self.vgg(input.float(), target.float(), per_layer=per_layer)
 
 # Gradient loss
 class GradientLoss(nn.Module):

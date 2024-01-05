@@ -1,23 +1,26 @@
 {
     "model": "wnet",
-    "num_devices": 3,
-    "batch_size": 96,
-    "epochs": 5000,
+    "batch_size": 32,
+    "epochs": 100,
     "loss": "l1_msssim",
+    "valid_epochs": 10,
+    "save_epochs": 10,
+    "precision": "mixed",
   
     "train_config": {
-      "optimizer": "radam",
-      "schedule": "clamped_exp",
-      "start_epoch": 500,
-      "end_epoch": 5000,
-      "steps": 5000,
+      "optimizer": "ranger",
+      "weight_decay": 1e-2,
+      "schedule": "cos_annealing",
+      "start_epoch": 0,
+      "end_epoch": 100,
+      "steps": 100,
       "lr": 0.01,
       "final_lr": 0.00000001
     },
   
     "model_config": {
       "use_bn": false,
-      "activation": "leaky_relu",
+      "activation": "relu",
       "leaky_slope": 0.1,
       "init": "default",
       "fe_model": "UNet",

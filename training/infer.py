@@ -17,7 +17,7 @@ from result import *
 from util_masks import *
 
 def main():
-  LoadMasks()
+  # LoadMasks()
 
   # Parse the command line arguments
   cfg = parse_args(description='Performs inference on a dataset using the specified training result.')
@@ -56,8 +56,11 @@ def main():
     x = F.pad(x, (0, round_up(shape[3], model.alignment) - shape[3],
                   0, round_up(shape[2], model.alignment) - shape[2]))
 
-    # Run the inference
+    # Filter the main feature
+    if result_cfg.precision == 'mixed' and device.type != 'cpu':
+      x = x.half()
     x = model(x)
+    x = x.float()
 
     # Unpad the output
     x = x[:, :, :shape[2], :shape[3]]
@@ -96,6 +99,12 @@ def main():
   # Load the checkpoint
   checkpoint = load_checkpoint(result_dir, device, cfg.checkpoint, model)
   epoch = checkpoint['epoch']
+
+    # Infer in FP16 if the model was trained with mixed precision
+  if result_cfg.precision == 'mixed':
+    model.half()
+  if device.type == 'cpu':
+    model.float() # CPU does not support FP16, so convert it back to FP32
 
   # Initialize the transfer function
   transfer = get_transfer_function(cfg)
@@ -139,9 +148,9 @@ def main():
 
         # Infer
         input = image_to_tensor(input, batch=True).to(device)
-        mask = GetSampleMask((input.shape[2], input.shape[3]), (input.shape[2]//2, input.shape[3]//2), input.shape[3]//15, size=64)
-        idx = (mask == 0)
-        input[:, :, idx] = 0
+        # mask = GetSampleMask((input.shape[2], input.shape[3]), (input.shape[2]//2, input.shape[3]//2), input.shape[3]//15, size=64)
+        # idx = (mask == 0)
+        # input[:, :, idx] = 0
         output = infer(model, transfer, input, exposure)
 
         input = input[:, 0:3, ...] # keep only the color
@@ -161,7 +170,7 @@ def main():
           metric_count += 1
 
         # Save the input and output images
-        output_name = input_name + '.' + cfg.result
+        output_name = input_name + '.'
         if cfg.checkpoint:
           output_name += f'_{epoch}'
         if cfg.save_all:

@@ -12,7 +12,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.cuda.amp as amp
 import torch.distributed as dist
 from torch.utils.tensorboard import SummaryWriter
 
@@ -137,13 +136,6 @@ def main_worker(rank, cfg):
     valid_loader, valid_sampler = get_data_loader(rank, cfg, valid_data, shuffle=False)
     valid_steps_per_epoch = len(valid_loader)
 
-  # Check whether AMP is enabled
-  amp_enabled = cfg.precision == 'mixed'
-
-  if amp_enabled:
-    # Initialize the gradient scaler
-    scaler = amp.GradScaler()
-
   # Initialize the summary writer
   log_dir = get_result_log_dir(result_dir)
   if rank == 0:
@@ -156,9 +148,6 @@ def main_worker(rank, cfg):
     print()
     progress_format = '%-5s %' + str(len(str(cfg.epochs))) + 'd/%d: ' % cfg.epochs
     total_start_time = time.time()
-
-  grad_history = []
-  clip_percentile = 10
 
   for epoch in range(start_epoch, cfg.epochs+1):
     if rank == 0:
@@ -177,47 +166,26 @@ def main_worker(rank, cfg):
     for i, batch in enumerate(train_loader, 0):
       # Get the batch
       input, target = batch
-      input  = input.to(device,  non_blocking=True)
-      target = target.to(device, non_blocking=True)
-      if not amp_enabled:
-        input  = input.float()
-        target = target.float()
+      input  = input.to(device,  non_blocking=True).float()
+      target = target.to(device, non_blocking=True).float()
 
       # save_image('out'+str(i)+'.png', tensor_to_image(input[0]))
 
       # Run a training step
       optimizer.zero_grad()
+      output = model(input)
 
-      with amp.autocast(enabled=amp_enabled):
-        output = model(input)
-        loss = criterion(output, target)
-
-      if amp_enabled:
-        scaler.scale(loss).backward()
-        scaler.unscale_(optimizer)
-        obs_grad_norm = get_grad_norm(model)
-        grad_history.append(obs_grad_norm)
-        clip_value = np.percentile(grad_history, clip_percentile)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), clip_value)
-        scaler.step(optimizer)
-        scaler.update()
-      else:
-        loss.backward()
-        obs_grad_norm = get_grad_norm(model)
-        grad_history.append(obs_grad_norm)
-        clip_value = np.percentile(grad_history, clip_percentile)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), clip_value)
-        optimizer.step()
+      loss = criterion(output, target)
+      loss.backward()
       
       # Next step
+      optimizer.step()
       step += 1
       train_loss += loss
       if rank == 0:
         progress.next()
 
-    # Get and update the learning rate
     lr_scheduler.step(epoch)
-
     # Compute the average training loss
     if distributed:
       dist.all_reduce(train_loss, op=dist.ReduceOp.SUM)
@@ -225,8 +193,8 @@ def main_worker(rank, cfg):
 
     # Write summary
     if rank == 0:
-      # if epoch == 1:
-      #   summary_writer.add_graph(unwrap_module(model), input)
+      if epoch == 1:
+        summary_writer.add_graph(unwrap_module(model), input)
       summary_writer.add_scalar('learning_rate', lr_scheduler.get_last_lr()[0], epoch)
       summary_writer.add_scalar('loss', train_loss, epoch)
 
